@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:jee="http://www.springframework.org/schema/jee" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util" xmlns:task="http://www.springframework.org/schema/task" xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+		http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.0.xsd"
+       default-lazy-init="true">
+    <context:annotation-config />
+    <!-- 自动扫描该包，使SpringMVC认为包下用了@controller注解的类是控制器 -->
+    <context:component-scan base-package="com.sys">
+        <!--将Controller的注解排除掉 -->
+        <context:exclude-filter type="annotation"     expression="org.springframework.stereotype.Controller" />
+    </context:component-scan>
+
+
+    <!-- MyBatis begin -->
+    <bean id="sqlSessionFactorySlave" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSourceSlave"/>
+        <property name="typeAliasesPackage" value="com.sys"/>
+        <property name="mapperLocations" value="classpath:mapper/slave/**/*Mapper.xml"/>
+        <property name="configLocation" value="classpath:mybatis/mybatis-config.xml"></property>
+    </bean>
+    <!-- 扫描basePackage下所有以@MyBatisDao注解的接口 -->
+    <bean id="mapperScannerConfigurerSlave"  class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactorySlave" />
+        <property name="basePackage" value="com.sys.slave"/>
+        <property name="annotationClass" value="com.sys.commons.common.MyBatisDao"/>
+    </bean>
+
+
+
+    <!-- 使用Druid使为XA数据源 -->
+    <bean id="abstractXADataSource2" class="com.atomikos.jdbc.AtomikosDataSourceBean" init-method="init" destroy-method="close" abstract="true">
+        <property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource"/>
+        <property name="xaProperties">
+            <props>
+                <prop key="driverClassName">${jdbc.driverClassName}</prop>
+                <!-- 配置初始化大小、最小、最大 -->
+                <prop key="initialSize">10</prop>
+                <prop key="minIdle">3</prop>
+                <prop key="maxActive">100</prop>
+                <!-- 配置获取连接等待超时的时间 -->
+                <prop key="maxWait">60000</prop>
+                <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+                <prop key="timeBetweenEvictionRunsMillis">60000</prop>
+                <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+                <prop key="minEvictableIdleTimeMillis">300000</prop>
+                <prop key="validationQuery">SELECT 'x' FROM DUAL</prop>
+                <prop key="testWhileIdle">true</prop>
+                <prop key="testOnBorrow">false</prop>
+                <prop key="testOnReturn">false</prop>
+                <!-- 配置监控统计拦截的filters -->
+                <prop key="filters">stat</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- 数据源配置, 使用 BoneCP 数据库连接池 -->
+    <bean id="dataSourceSlave" parent="abstractXADataSource2">
+        <property name="uniqueResourceName">
+            <value>dataSourceSlave</value>
+        </property>
+        <property name="xaProperties">
+            <props>
+                <prop key="url">${jdbc.slave.url}</prop>
+                <prop key="username">${jdbc.slave.username}</prop>
+                <prop key="password">${jdbc.slave.password}</prop>
+            </props>
+        </property>
+    </bean>
+
+</beans>

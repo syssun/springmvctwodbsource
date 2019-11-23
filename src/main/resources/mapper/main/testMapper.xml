@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sys.main.test.testDao">
+    <select id="getUser" resultType="map">
+        select * from buser b where b.loginname='sys'
+    </select>
+    <update id="upd">
+        update buser b set b.name='88888888' where b.loginname='sys'
+    </update>
+</mapper>
